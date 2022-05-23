@@ -10,8 +10,8 @@
 void yyerror(const char *msg);
 extern int currLine;
 extern int currPos;
-FILE* yyin;
 extern int yylex();
+FILE* fin;
 std::string code = "";
 %}
 
@@ -31,7 +31,7 @@ std::string code = "";
 %token OR "or" AND "and" NOT "not" TRUE "true" FALSE "false" EQ "==" NEQ "<>" LT "<" GT ">" LTE "<=" GTE ">=" ADD "+" SUB "-" MULT "*" DIV "/" MOD "%" L_PAREN "(" R_PAREN ")" RETURN "return" ERROR "symbol" EQSIGN "="
 %token <dval> NUMBER "nunmber"
 %token <str> IDENT "identifier"
-%type functions function declarations declaration statements statement vars var expressions expression bool_exp relation_and_exp relation_exp comp multiplicative_expression term identifiers ident
+%type <str> functions function declarations declaration statements statement vars var expressions expression bool_exp relation_and_exp relation_exp comp multiplicative_expression term identifiers ident
 %right ASSIGN
 %left OR
 %left AND
@@ -47,7 +47,7 @@ std::string code = "";
 
   /* write your rules here */
 prog_start:
-  functions   {printf("prog_start -> functions\n");} |
+  functions   {code.append("Hello World this will output code\n"); std::cout << code << std::endl;} |
   error '\n'  {yyerrok; yyclearin;}
   ;
 
@@ -58,8 +58,7 @@ functions:
 
 function:
   FUNCTION ident SEMICOLON BEGIN_PARAMS declarations END_PARAMS BEGIN_LOCALS declarations END_LOCALS BEGIN_BODY statements END_BODY
-  {printf("function -> FUNCTION ident SEMICOLON BEGIN_PARAMS declarations END_PARAMS BEGIN_LOCALS declarations END_LOCALS BEGIN_BODY statements END_BODY\n");
-  code.append("Hello World this will output code\n"); std::cout << code << std::endl;}
+  {printf("function -> FUNCTION ident SEMICOLON BEGIN_PARAMS declarations END_PARAMS BEGIN_LOCALS declarations END_LOCALS BEGIN_BODY statements END_BODY\n");}
   ;
 
 declarations:
@@ -173,8 +172,8 @@ ident:
 int main(int argc, char **argv)
 {
    if(argc >= 2) {
-      yyin = fopen(argv[1], "r");
-      if(yyin == NULL) {
+      fin = fopen(argv[1], "r");
+      if(fin == NULL) {
           printf("syntax: %s filename\n", argv[0]);
       }
    }
