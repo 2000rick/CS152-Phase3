@@ -1,37 +1,42 @@
 /* cs152-miniL phase3 */
 
-
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include "lib.h"
 #include <string>
 #include <iostream>
+#include "lib.h"
+using namespace std;
 void yyerror(const char *msg);
 extern int currLine;
 extern int currPos;
 extern int yylex();
 FILE* fin;
 std::string code = "";
+bool mainFlag = false; //program must have a 'main' function
 %}
 
 %union {
-  int int_val;
-  double dval;
+  int ival;
   char* str;
+
+  struct attr {
+    char* code;
+    bool isArray;
+  } attributes;
+
 }
 
 %error-verbose
 
-%token<int_val> DIGIT
 %start prog_start
 %token <str> FUNCTION "function" SEMICOLON ";" BEGIN_PARAMS "beginparams" END_PARAMS "endparams" BEGIN_LOCALS "beginlocals" END_LOCALS "endlocals" BEGIN_BODY "beginbody" END_BODY "endbody"
 %token <str> COMMA ","  COLON ":" INTEGER "integer" ARRAY "array" L_SQUARE_BRACKET "[" R_SQUARE_BRACKET "]" OF "of" ENUM "enum" ASSIGN ":=" 
 %token <str> IF "if" THEN "then" ELSE "else" ENDIF "endif" FOR "for" WHILE "while" BEGINLOOP "beginloop" ENDLOOP "endloop" DO "do" READ "read" WRITE "write" CONTINUE "continue"
 %token <str> OR "or" AND "and" NOT "not" TRUE "true" FALSE "false" EQ "==" NEQ "<>" LT "<" GT ">" LTE "<=" GTE ">=" ADD "+" SUB "-" MULT "*" DIV "/" MOD "%" L_PAREN "(" R_PAREN ")" RETURN "return" ERROR "symbol" EQSIGN "="
-%token <dval> NUMBER "nunmber"
+%token <ival> NUMBER "nunmber"
 %token <str> IDENT "identifier"
-%type <str> functions function declarations declaration statements statement vars var expressions expression bool_exp relation_and_exp relation_exp comp multiplicative_expression term identifiers ident
+%type <attributes> functions function declarations declaration statements statement vars var expressions expression bool_exp relation_and_exp relation_exp comp multiplicative_expression term identifiers ident
 %right ASSIGN
 %left OR
 %left AND
@@ -47,12 +52,21 @@ std::string code = "";
 
   /* write your rules here */
 prog_start:
-  functions   {code.pop_back(); std::cout << code << std::endl;} |
+  functions   {std::cout << code << std::endl;} |
   error '\n'  {yyerrok; yyclearin;}
   ;
 
 functions:
-      { /*Nothing to do here */ } | 
+    {
+       //functions go to epsilon
+       if(mainFlag) {
+         code = "We can set this to be the entire mil code for the program\n";
+       }
+       else {
+         cout << "Function 'main' is missing" << endl;
+         exit(1);
+       }
+    } | 
     function functions  {}
     ;
 
@@ -164,13 +178,7 @@ identifiers:
 
 ident:
   IDENT { 
-    // std::string tmp($1);
-    // if(tmp == "main") {
-    //   code.append("func main\n");
-    // }
-    // else {
-    //   code.append("." + tmp + "\n"); 
-    // } 
+
   }
   ;
 
