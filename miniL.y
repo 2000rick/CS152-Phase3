@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string>
 #include <iostream>
+#include <sstream>
+#include <cstring>
 #include "lib.h"
 using namespace std;
 void yyerror(const char *msg);
@@ -23,6 +25,7 @@ bool mainFlag = false; //program must have a 'main' function
   struct attr {
     char* code;
     bool isArray;
+    char* s_name; //symbol_names? don't know what to call it, need something analogus to .place in lecture
   } attributes;
 
 }
@@ -59,10 +62,8 @@ prog_start:
 functions:
     {
        //functions go to epsilon
-       if(mainFlag) {
-         code = "We can set this to be the entire mil code for the program\n";
-       }
-       else {
+       mainFlag = true; //testing purposes (to be removed later)
+       if(!mainFlag) {
          cout << "Function 'main' is missing" << endl;
          exit(1);
        }
@@ -72,17 +73,55 @@ functions:
 
 function:
   FUNCTION ident SEMICOLON BEGIN_PARAMS declarations END_PARAMS BEGIN_LOCALS declarations END_LOCALS BEGIN_BODY statements END_BODY
+  {
+    stringstream tmp;
+    // tmp << "func " << $2.s_name << "\n" << $5.code << $8.code << $11.code << "endfunc\n";
+    tmp << "func " << $2.s_name << "\n" << $5.code << $8.code << "endfunc\n";
+    code.append(tmp.str().c_str());
+  }
   ;
 
 declarations:
-    {} | 
-    declaration SEMICOLON declarations {}
+    {
+      //decs -> epsilon
+      $$.code = strdup("");
+      $$.s_name = strdup("");
+    } | 
+    declaration SEMICOLON declarations {
+      stringstream tmp;
+      tmp << $1.code << $3.code;
+      $$.code = strdup(tmp.str().c_str());
+      $$.s_name = strdup("");
+    }
     ;
 
 declaration:
-  identifiers COLON INTEGER                                                     {} |
-  identifiers COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER   {} |
-  identifiers COLON ENUM L_PAREN identifiers R_PAREN                            {}
+  identifiers COLON INTEGER                                                     {
+    stringstream tmp;   tmp << $1.s_name;
+    string st = tmp.str();
+    string code_str = "";
+    while(st.find(' ') != string::npos) {
+      int i = st.find(' ');
+      code_str.append(". "+st.substr(0,i)+"\n");
+      // cout << ". " << st.substr(0, i) << endl;
+      st = st.substr(i+1);
+    }
+    code_str.append(". "+st+"\n");
+    // cout << ". " << st << endl;
+    $$.code = strdup(code_str.c_str());
+    $$.s_name = strdup("");
+  } |
+  identifiers COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER   {
+    string name($1.s_name);
+    string code_str = "";
+    code_str.append(".[] "+name+", "+to_string($5)+"\n");
+    // cout << ".[] " << $1.s_name << ", " << $5 << endl;
+    $$.code = strdup(code_str.c_str());
+    $$.s_name = strdup("");
+  } |
+  identifiers COLON ENUM L_PAREN identifiers R_PAREN                            {
+    //Implementation not required since not specificed https://cs152-ucr-gupta.github.io/website/mil.html
+  }
   ;
 
 statements:
@@ -172,13 +211,25 @@ var:
   ;
 
 identifiers:
-  ident                     {} |
-  ident COMMA identifiers   {}
+  ident                     {
+    $$.code = strdup("");
+    $$.s_name = strdup($1.s_name);
+  } |
+  ident COMMA identifiers   {
+    $$.code = strdup("");
+    stringstream tmp;   //Use stringstream for easy conversion between char*/cstrings and strings
+    tmp << $1.s_name << " " << $3.s_name; //the space character in between is a delimiter for different identifiers
+    $$.s_name = strdup(tmp.str().c_str());
+  }
   ;
 
 ident:
-  IDENT { 
-
+  IDENT {
+    /* ISO C++ forbids converting a string constant to ‘char*’, so can't do code=""
+    Using (char*) type conversion was also a bad idea (didn't work properly).
+    Using strdup seems to work and is probably the best option. */ 
+    $$.code = strdup("");
+    $$.s_name = strdup($1); 
   }
   ;
 
