@@ -130,7 +130,16 @@ statements:
     ;
 
 statement:
-  var ASSIGN expression                               {} |
+  var ASSIGN expression                               {
+    // cout << $1.code << $3.code;
+    // cout << "= " << $1.s_name << ", " << $3.s_name << "\n";
+    stringstream stream;
+    stream << $1.code << $3.code;
+    if($1.isArray) {stream << "[]= " << $1.s_name << ", " << $3.s_name << "\n";}
+    else {stream << "= " << $1.s_name << ", " << $3.s_name << "\n";} 
+    $$.code = strdup(stream.str().c_str());
+    $$.s_name = strdup("");
+  } |
   IF bool_exp THEN statements ENDIF                   {} |
   IF bool_exp THEN statements ELSE statements ENDIF   {} |
   WHILE bool_exp BEGINLOOP statements ENDLOOP         {} |
@@ -178,22 +187,52 @@ expressions:
     ;
 
 expression:
-  multiplicative_expression                  {} |
+  multiplicative_expression                  {
+    $$.code = strdup($1.code);
+    $$.s_name = strdup($1.s_name);
+  } |
   multiplicative_expression ADD expression   {} |
   multiplicative_expression SUB expression   {}
   ;
 
 multiplicative_expression:
-  term                                     {} |
-  term MULT multiplicative_expression      {} |
-  term DIV multiplicative_expression       {} |
-  term MOD multiplicative_expression       {}
+  term                                     {
+    $$.code = strdup($1.code);
+    $$.s_name = strdup($1.s_name);
+  } |
+  term MULT multiplicative_expression      {
+    string temp = newtemp();
+    stringstream stream;
+    stream << $1.code << $3.code << ". " << temp << "\n" << "* " << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
+    $$.code = strdup(stream.str().c_str());
+    $$.s_name = strdup(temp.c_str());
+  } |
+  term DIV multiplicative_expression       {
+    string temp = newtemp();
+    stringstream stream;
+    stream << $1.code << $3.code << ". " << temp << "\n" << "/ " << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
+    $$.code = strdup(stream.str().c_str());
+    $$.s_name = strdup(temp.c_str());
+  } |
+  term MOD multiplicative_expression       {
+    string temp = newtemp();
+    stringstream stream;
+    stream << $1.code << $3.code << ". " << temp << "\n" << "% " << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
+    $$.code = strdup(stream.str().c_str());
+    $$.s_name = strdup(temp.c_str());
+  }
   ;
 
 term:
   ident L_PAREN expressions R_PAREN   {} |
   var                                 {} |
-  NUMBER                              {} |
+  NUMBER                              {
+    string temp = newtemp();
+    stringstream stream;
+    stream << ". " << temp << "\n= " << temp << ", " << $1 << "\n";
+    $$.code = strdup(stream.str().c_str());
+    $$.s_name = strdup(temp.c_str());
+  } |
   L_PAREN expression R_PAREN          {} |
   SUB var                          {} %prec UMINUS    |
   SUB NUMBER                       {} %prec UMINUS    |
@@ -206,8 +245,19 @@ vars:
   ;
 
 var:
-  ident                                                 {} |
-  ident L_SQUARE_BRACKET expression R_SQUARE_BRACKET    {}
+  ident                                                 {
+    $$.isArray = false;
+    $$.code = strdup("");
+    $$.s_name = strdup($1.s_name);
+  } |
+  ident L_SQUARE_BRACKET expression R_SQUARE_BRACKET    {
+    $$.isArray = true;
+    $$.code = strdup($3.code);
+    $$.code = strdup("");
+    stringstream temp;
+    temp << $1.s_name << ", " << $3.s_name;
+    $$.s_name = strdup(temp.str().c_str());
+  }
   ;
 
 identifiers:
