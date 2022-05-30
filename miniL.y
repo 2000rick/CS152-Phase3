@@ -109,8 +109,7 @@ declarations:
 
 declaration:
   identifiers COLON INTEGER {
-    stringstream tmp;   tmp << $1.s_name;
-    string st = tmp.str();
+    string st($1.s_name);
     string code_str = "";
     while(st.find(' ') != string::npos) {
       int i = st.find(' ');
