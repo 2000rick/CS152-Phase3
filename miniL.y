@@ -152,7 +152,7 @@ statement:
   IF bool_exp THEN statements ENDIF                   {
     string lab1 = newlabel();
     string lab2 = newlabel();
-    cout << lab1 << " " << lab2 << " on line 155" << endl;
+    // cout << lab1 << " " << lab2 << " on line 155" << endl;
     stringstream stream;
     stream << $2.code << "?:= " << lab1 << ", " << $2.s_name << "\n";
     stream << ":= " << lab2 << "\n";
@@ -163,7 +163,7 @@ statement:
   IF bool_exp THEN statements ELSE statements ENDIF   {
     string lab1 = newlabel();
     string lab2 = newlabel();
-    cout << lab1 << " " << lab2 << " on line 155" << endl;
+    // cout << lab1 << " " << lab2 << " on line 166" << endl;
     stringstream stream;
     stream << $2.code << "?:= " << lab1 << ", " << $2.s_name << "\n";
     stream << $6.code; //else condition
@@ -176,7 +176,7 @@ statement:
     string lab1 = newlabel();
     string lab2 = newlabel();
     string lab3 = newlabel();
-    cout << lab1 << " " << lab2 << " " << lab3 << " on line 179" << endl;
+    // cout << lab1 << " " << lab2 << " " << lab3 << " on line 179" << endl;
     stringstream stream;
     string codeblock($4.code);
     while (codeblock.find("continue") != string::npos) {
@@ -194,7 +194,7 @@ statement:
   } |
   DO BEGINLOOP statements ENDLOOP WHILE bool_exp      {
     string lab1 = newlabel();
-    cout << lab1 << " on line 197" << endl;
+    // cout << lab1 << " on line 197" << endl;
     stringstream stream;
     string codeblock($3.code);
     while (codeblock.find("continue") != string::npos) {
@@ -245,7 +245,7 @@ bool_exp:
   } |
   relation_and_exp OR bool_exp          {
     string temp = newtemp();
-    cout << temp << " line 224" << endl;
+    // cout << temp << " line 224" << endl;
     stringstream stream;
     stream << $1.code << $3.code << ". " << temp << "\n";
     stream << "|| " << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
@@ -261,7 +261,7 @@ relation_and_exp:
   } |
   relation_exp AND relation_and_exp   {
     string temp = newtemp();
-    cout << temp << " line 260" << endl;
+    // cout << temp << " line 260" << endl;
     stringstream stream;
     stream << $1.code << $3.code << ". " << temp << "\n";
     stream << "&& " << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
@@ -273,7 +273,7 @@ relation_and_exp:
 relation_exp:
   expression comp expression      {
     string temp = newtemp();
-    cout << temp << " line 272" << endl;
+    // cout << temp << " line 272" << endl;
     stringstream stream;
     stream << $1.code << $3.code << ". " << temp << "\n" << $2.code << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
     $$.code = strdup(stream.str().c_str());
@@ -295,7 +295,7 @@ relation_exp:
   } |
   NOT expression comp expression  {
     string temp = newtemp();
-    cout << temp << " line 294" << endl;
+    // cout << temp << " line 294" << endl;
     stringstream stream;
     stream << $2.code << $4.code << ". " << temp << "\n" << $3.code << temp << ", " << $2.s_name << ", " << $4.s_name << "\n";
     stream << "! " << temp << ", " << temp << "\n";
@@ -376,7 +376,7 @@ expression:
   } |
   multiplicative_expression ADD expression {
     string temp = newtemp();
-    cout << temp << " line 375" << endl;
+    // cout << temp << " line 375" << endl;
     stringstream stream;
     stream << $1.code << $3.code << ". " << temp << "\n" << "+ " << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
     $$.code = strdup(stream.str().c_str());
@@ -384,7 +384,7 @@ expression:
   } |
   multiplicative_expression SUB expression {
     string temp = newtemp();
-    cout << temp << " line 383" << endl;
+    // cout << temp << " line 383" << endl;
     stringstream stream;
     stream << $1.code << $3.code << ". " << temp << "\n" << "- " << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
     $$.code = strdup(stream.str().c_str());
@@ -399,7 +399,7 @@ multiplicative_expression:
   } |
   term MULT multiplicative_expression      {
     string temp = newtemp();
-    cout << temp << " line 398" << endl;
+    // cout << temp << " line 398" << endl;
     stringstream stream;
     stream << $1.code << $3.code << ". " << temp << "\n" << "* " << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
     $$.code = strdup(stream.str().c_str());
@@ -407,7 +407,7 @@ multiplicative_expression:
   } |
   term DIV multiplicative_expression       {
     string temp = newtemp();
-    cout << temp << " line 406" << endl;
+    // cout << temp << " line 406" << endl;
     stringstream stream;
     stream << $1.code << $3.code << ". " << temp << "\n" << "/ " << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
     $$.code = strdup(stream.str().c_str());
@@ -415,7 +415,7 @@ multiplicative_expression:
   } |
   term MOD multiplicative_expression       {
     string temp = newtemp();
-    cout << temp << " line 414" << endl;
+    // cout << temp << " line 414" << endl;
     stringstream stream;
     stream << $1.code << $3.code << ". " << temp << "\n" << "% " << temp << ", " << $1.s_name << ", " << $3.s_name << "\n";
     $$.code = strdup(stream.str().c_str());
@@ -427,7 +427,7 @@ term:
   ident L_PAREN expressions R_PAREN   {
     //this must be a function call?
     string temp = newtemp();
-    cout << temp << " line 426" << endl;
+    // cout << temp << " line 426" << endl;
     stringstream stream;
     stream << $3.code << ". " << temp << "\ncall " << $1.s_name << ", " << temp << "\n";
     $$.code = strdup(stream.str().c_str());
@@ -435,17 +435,16 @@ term:
   } |
   var {
     string temp = newtemp();
-    cout << temp << " line 434" << endl;
+    // cout << temp << " line 434" << endl;
     stringstream stream;
     if($1.isArray) { stream << $1.code << ". " << temp << "\n=[] " << temp << ", " << $1.s_name << "\n"; }
     else { stream << ". " << temp << "\n= " << temp << ", " << $1.s_name << "\n" << $1.code;}
     $$.code = strdup(stream.str().c_str());
-    cout << $$.code << endl;
     $$.s_name = strdup(temp.c_str());
   } |
   NUMBER {
     string temp = newtemp();
-    cout << temp << " line 443" << endl;
+    // cout << temp << " line 443" << endl;
     stringstream stream;
     stream << ". " << temp << "\n= " << temp << ", " << $1 << "\n";
     $$.code = strdup(stream.str().c_str());
@@ -467,7 +466,7 @@ term:
   } %prec UMINUS    |
   SUB NUMBER {
     string temp = newtemp();
-    cout << temp << " line 465" << endl;
+    // cout << temp << " line 465" << endl;
     stringstream stream;
     stream << ". " << temp << "\n= " << temp << ", -" << $2 << "\n";
     $$.code = strdup(stream.str().c_str());
@@ -475,7 +474,7 @@ term:
   } %prec UMINUS    |
   SUB L_PAREN expression R_PAREN {
     string temp = newtemp();
-    cout << temp << " line 473" << endl;
+    // cout << temp << " line 473" << endl;
     stringstream stream;
     stream << $3.code << ". " << temp << "\n-" << temp << ", " << 0 << ", " << $3.s_name << "\n";
     $$.code = strdup(stream.str().c_str());
@@ -509,7 +508,6 @@ var:
   ident L_SQUARE_BRACKET expression R_SQUARE_BRACKET    {
     $$.isArray = true;
     $$.code = strdup($3.code);
-    $$.code = strdup("");
     stringstream temp;
     temp << $1.s_name << ", " << $3.s_name;
     $$.s_name = strdup(temp.str().c_str());
