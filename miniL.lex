@@ -72,7 +72,7 @@ ALPHA    [a-zA-Z]
 ({ALPHA}+(({DIGIT})|({ALPHA})|(_))*_+)                     {printf("Error at line %d, column %d: identifier \"%s\" cannot end with an underscore\n", currLine, currPos, yytext); exit(0);}
 ({ALPHA}+(({DIGIT})|({ALPHA})|(_))*)                       {currPos += yyleng; yylval.str = yytext; return IDENT;}
 
-(\.{DIGIT}+)|({DIGIT}+(\.{DIGIT}*)?([eE][+-]?[0-9]+)?)     {currPos += yyleng; yylval.ival = atof(yytext); return NUMBER;}
+("-")?(\.{DIGIT}+)|("-")?({DIGIT}+(\.{DIGIT}*)?([eE][+-]?[0-9]+)?)     {currPos += yyleng; yylval.ival = atof(yytext); return NUMBER;}
 
 [ \t]+         {/* ignore spaces */ currPos += yyleng;}
 "\n"           {++currLine; currPos = 1;}

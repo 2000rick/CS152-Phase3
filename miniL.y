@@ -7,6 +7,8 @@
 #include <iostream>
 #include <sstream>
 #include <cstring>
+#include <unordered_map>
+#include <set>
 #include "lib.h"
 using namespace std;
 void yyerror(const char *msg);
@@ -16,6 +18,10 @@ extern int yylex();
 FILE* fin;
 std::string code = "";  //This will contain all mil code for a program after parsing finishes
 bool mainFlag = false; //program must have a 'main' function
+bool errorFlag = false; //don't output code if error(s) exists
+set<string> funcs;
+set<string> symbols;
+unordered_map<string, bool> isArr;
 %}
 
 %union {
@@ -55,7 +61,7 @@ bool mainFlag = false; //program must have a 'main' function
 
   /* write your rules here */
 prog_start:
-  functions   {std::cout << code << std::endl;} |
+  functions   {std::cout << code;} |
   error '\n'  {yyerrok; yyclearin;}
   ;
 
@@ -66,12 +72,24 @@ functions:
          cout << "Function 'main' is missing" << endl;
          exit(1);
        }
+       if(errorFlag) exit(1);
     } | 
     function functions  {}
     ;
 
 function:
-  FUNCTION ident SEMICOLON BEGIN_PARAMS declarations END_PARAMS BEGIN_LOCALS declarations END_LOCALS BEGIN_BODY statements END_BODY
+  FUNCTION ident {
+    if(funcs.find($2.s_name) != funcs.end()) {
+      errorFlag=true; cout << "Error on line " << currLine << ": function \"" << $2.s_name << "\" is mutiply defined\n";
+    }
+    else {funcs.insert($2.s_name);}
+    string fname($2.s_name);
+    if(fname == "main") mainFlag = true;
+    stringstream stream;
+    stream << "func " << fname << "\n";
+    code.append(stream.str());
+  } 
+  SEMICOLON BEGIN_PARAMS declarations END_PARAMS BEGIN_LOCALS declarations END_LOCALS BEGIN_BODY statements END_BODY
   {
     string fname($2.s_name);
     if(fname == "main") mainFlag = true;
@@ -109,24 +127,48 @@ declarations:
 
 declaration:
   identifiers COLON INTEGER {
-    string st($1.s_name);
+    string name($1.s_name);
     string code_str = "";
-    while(st.find(' ') != string::npos) {
-      int i = st.find(' ');
-      code_str.append(". "+st.substr(0,i)+"\n");
-      // cout << ". " << st.substr(0, i) << endl;
-      st = st.substr(i+1);
+    while(name.find(' ') != string::npos) {
+      int i = name.find(' ');
+      string id = name.substr(0,i);
+      if(symbols.find(id) == symbols.end()) {
+        symbols.insert(id);
+        isArr[id] = false;
+        code_str.append(". "+id+"\n");
+      }
+      else {errorFlag=true; cout << "Error on line " << currLine << ": symbol \"" << id << "\" is mutiply defined\n";}
+      name = name.substr(i+1);
     }
-    code_str.append(". "+st+"\n");
-    // cout << ". " << st << endl;
+    if(symbols.find(name) == symbols.end()) {
+      symbols.insert(name);
+      isArr[name] = false;
+      code_str.append(". "+name+"\n");
+    }
+    else {errorFlag=true; cout << "Error on line " << currLine << ": symbol \"" << name << "\" is mutiply defined\n"; }
     $$.code = strdup(code_str.c_str());
     $$.s_name = strdup("");
   } |
   identifiers COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER {
     string name($1.s_name);
     string code_str = "";
-    code_str.append(".[] "+name+", "+to_string($5)+"\n");
-    // cout << ".[] " << $1.s_name << ", " << $5 << endl;
+    while(name.find(' ') != string::npos) {
+      int i = name.find(' ');
+      string id = name.substr(0,i);
+      if(symbols.find(id) == symbols.end()) {
+        symbols.insert(id);
+        isArr[id] = true;
+        code_str.append(".[] "+id+", "+to_string($5)+"\n");
+      }
+      else {errorFlag=true; cout << "Error on line " << currLine << ": symbol \"" << id << "\" is mutiply defined\n";}
+      name = name.substr(i+1);
+    }
+    if(symbols.find(name) == symbols.end()) {
+      symbols.insert(name);
+      isArr[name] = true;
+      code_str.append(".[] "+name+", "+to_string($5)+"\n");
+    }
+    else {errorFlag=true; cout << "Error on line " << currLine << ": symbol \"" << name << "\" is mutiply defined\n";}
     $$.code = strdup(code_str.c_str());
     $$.s_name = strdup("");
   } |
@@ -498,6 +540,9 @@ var:
     $$.isArray = false;
     $$.code = strdup("");
     $$.s_name = strdup($1.s_name);
+    string id($1.s_name);
+    if(symbols.find(id) == symbols.end()) {errorFlag=true; cout << "Error on line " << currLine << ": use of variable \"" << id << "\" is not declared\n";}
+    else if(isArr[id]) {errorFlag=true; cout << "Error on line " << currLine << ": use of array variable \"" << id << "\" is missing a specified index\n";}
   } |
   ident L_SQUARE_BRACKET expression R_SQUARE_BRACKET {
     $$.isArray = true;

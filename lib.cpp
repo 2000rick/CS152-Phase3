@@ -12,3 +12,4 @@ std::string newlabel() {
     std::string label = "__label__" + std::to_string(count++);
     return label;
 }
+
