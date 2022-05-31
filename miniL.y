@@ -9,6 +9,7 @@
 #include <cstring>
 #include <unordered_map>
 #include <set>
+#include<bits/stdc++.h>
 #include "lib.h"
 using namespace std;
 void yyerror(const char *msg);
@@ -19,9 +20,16 @@ FILE* fin;
 std::string code = "";  //This will contain all mil code for a program after parsing finishes
 bool mainFlag = false; //program must have a 'main' function
 bool errorFlag = false; //don't output code if error(s) exists
-set<string> funcs;
-set<string> symbols;
-unordered_map<string, bool> isArr;
+set<string> funcs;      //set of function names
+set<string> symbols;    //set of variable/identifier names
+unordered_map<string, bool> isArr; //hashmap for storing if a variable is an array
+/*  a set of reserved words for the MINIL language as specified here:
+    https://cs152-ucr-gupta.github.io/website/token_list_format.html   */
+std::set<std::string> reserved {
+    "function", "beginparams", "endparams", "beginlocals", "endlocals", "beginbody", "endbody", "integer", "array",
+    "enum","of", "if", "then", "endif", "else", "for", "while", "do", "beginloop", "endloop", "continue", "read", 
+    "write", "and", "or", "not", "true", "false", "return"
+};
 %}
 
 %union {
@@ -43,7 +51,7 @@ unordered_map<string, bool> isArr;
 %token <str> COMMA ","  COLON ":" INTEGER "integer" ARRAY "array" L_SQUARE_BRACKET "[" R_SQUARE_BRACKET "]" OF "of" ENUM "enum" ASSIGN ":=" 
 %token <str> IF "if" THEN "then" ELSE "else" ENDIF "endif" FOR "for" WHILE "while" BEGINLOOP "beginloop" ENDLOOP "endloop" DO "do" READ "read" WRITE "write" CONTINUE "continue"
 %token <str> OR "or" AND "and" NOT "not" TRUE "true" FALSE "false" EQ "==" NEQ "<>" LT "<" GT ">" LTE "<=" GTE ">=" ADD "+" SUB "-" MULT "*" DIV "/" MOD "%" L_PAREN "(" R_PAREN ")" RETURN "return" ERROR "symbol" EQSIGN "="
-%token <ival> NUMBER "nunmber"
+%token <ival> NUMBER "number"
 %token <str> IDENT "identifier"
 %type <attributes> functions function declarations declaration statements statement vars var expressions expression bool_exp relation_and_exp relation_exp comp multiplicative_expression term identifiers ident funcid
 %right ASSIGN
@@ -86,9 +94,6 @@ function:
       cout << "Error on line " << currLine << ": continue statement not within a loop\n";
     }
     
-    string fname($2.s_name);
-    if(fname == "main") mainFlag = true;
-
     string build = ""; string params($5.code);
     int count = 0; int space = 0;
     for(int i=0; i<params.size(); ++i) {
@@ -111,6 +116,7 @@ funcid:
     $$.code = strdup("");
     $$.s_name = strdup($1); 
     string id($1);
+    if(id=="main") mainFlag = true;
     if(funcs.find(id) == funcs.end()) { funcs.insert(id); }
     else {
       errorFlag=true; 
@@ -240,12 +246,14 @@ statement:
       unsigned i = codeblock.find("continue");
       codeblock.replace(i, 8, ":= " + lab1); //replace continue with goto label1
     }
-    stream << ": " << lab1 << "\n";               //label 1 is here
-    stream << $2.code << "?:= " << lab2 << ", " << $2.s_name << "\n";   //If boolexp evaluates to true go to label2
-    stream << ":= " << lab3 << "\n";              //If false go to label3, ending the loop
-    stream << ": " << lab2 << "\n" << codeblock;  //reaching label2 executes the codeblock
-    stream << ":= " << lab1 << "\n";              //go to label 1 (loop)
-    stream << ": " << lab3 << "\n";               //label3 is here
+    
+    //update: changed placements of labels to match primes.mil
+    stream << ": " << lab3 << "\n";               //label 1 is here
+    stream << $2.code << "?:= " << lab1 << ", " << $2.s_name << "\n";   //If boolexp evaluates to true go to label2
+    stream << ":= " << lab2 << "\n";              //If false go to label3, ending the loop
+    stream << ": " << lab1 << "\n" << codeblock;  //reaching label2 executes the codeblock
+    stream << ":= " << lab3 << "\n";              //go to label 1 (loop)
+    stream << ": " << lab2 << "\n";               //label3 is here
     $$.code = strdup(stream.str().c_str());
     $$.s_name = strdup("");
   } |
@@ -583,6 +591,16 @@ identifiers:
 
 ident:
   IDENT {
+    /* https://www.geeksforgeeks.org/conversion-whole-string-uppercase-lowercase-using-stl-c/ 
+    one-liner instead of writing a for-loop to do lowercase conversion*/
+    string id($1);
+    transform(id.begin(), id.end(), id.begin(), ::tolower);
+    if(reserved.find(id) != reserved.end()) {
+      errorFlag = true;
+      cout << "Error on line " << currLine << ": trying to use reserved word \"" << id << "\" as a variable name\n";
+      //Below, we propagate the identifier anyways so we don't seg fault. No code will output anyways if there's an error.
+    }
+
     /* ISO C++ forbids converting a string constant to ‘char*’, so can't do code=""
     Using (char*) type conversion was also a bad idea (didn't work properly).
     Using strdup seems to work and is probably the best option. */ 
