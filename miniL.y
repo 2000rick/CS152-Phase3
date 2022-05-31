@@ -69,7 +69,7 @@ functions:
     {
        //functions go to epsilon
        if(!mainFlag) {
-         cout << "Error: function \"main\" is missing" << endl;
+         cout << "Error: The \"main\" function is not defined" << endl;
          exit(1);
        }
        if(errorFlag) exit(1);
