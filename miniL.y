@@ -45,7 +45,7 @@ unordered_map<string, bool> isArr;
 %token <str> OR "or" AND "and" NOT "not" TRUE "true" FALSE "false" EQ "==" NEQ "<>" LT "<" GT ">" LTE "<=" GTE ">=" ADD "+" SUB "-" MULT "*" DIV "/" MOD "%" L_PAREN "(" R_PAREN ")" RETURN "return" ERROR "symbol" EQSIGN "="
 %token <ival> NUMBER "nunmber"
 %token <str> IDENT "identifier"
-%type <attributes> functions function declarations declaration statements statement vars var expressions expression bool_exp relation_and_exp relation_exp comp multiplicative_expression term identifiers ident
+%type <attributes> functions function declarations declaration statements statement vars var expressions expression bool_exp relation_and_exp relation_exp comp multiplicative_expression term identifiers ident funcid
 %right ASSIGN
 %left OR
 %left AND
@@ -69,7 +69,7 @@ functions:
     {
        //functions go to epsilon
        if(!mainFlag) {
-         cout << "Function 'main' is missing" << endl;
+         cout << "Error: function \"main\" is missing" << endl;
          exit(1);
        }
        if(errorFlag) exit(1);
@@ -78,19 +78,14 @@ functions:
     ;
 
 function:
-  FUNCTION ident {
-    if(funcs.find($2.s_name) != funcs.end()) {
-      errorFlag=true; cout << "Error on line " << currLine << ": function \"" << $2.s_name << "\" is mutiply defined\n";
-    }
-    else {funcs.insert($2.s_name);}
-    string fname($2.s_name);
-    if(fname == "main") mainFlag = true;
-    stringstream stream;
-    stream << "func " << fname << "\n";
-    code.append(stream.str());
-  } 
-  SEMICOLON BEGIN_PARAMS declarations END_PARAMS BEGIN_LOCALS declarations END_LOCALS BEGIN_BODY statements END_BODY
+  FUNCTION funcid SEMICOLON BEGIN_PARAMS declarations END_PARAMS BEGIN_LOCALS declarations END_LOCALS BEGIN_BODY statements END_BODY
   {
+    string codeblock($11.code);
+    if(codeblock.find("continue") != string::npos) {
+      errorFlag = true;
+      cout << "Error on line " << currLine << ": continue statement not within a loop\n";
+    }
+    
     string fname($2.s_name);
     if(fname == "main") mainFlag = true;
 
@@ -105,12 +100,24 @@ function:
       }
     }
 
-    stringstream tmp;
-    tmp << "func " << $2.s_name << "\n" << build << $8.code << $11.code << "endfunc\n\n";
-    code.append(tmp.str());
+    stringstream stream;
+    stream << "func " << $2.s_name << "\n" << build << $8.code << $11.code << "endfunc\n\n";
+    code.append(stream.str());
   }
   ;
 
+funcid:
+  IDENT {
+    $$.code = strdup("");
+    $$.s_name = strdup($1); 
+    string id($1);
+    if(funcs.find(id) == funcs.end()) { funcs.insert(id); }
+    else {
+      errorFlag=true; 
+      cout << "Error on line " << currLine << ": function \"" << id << "\" is mutiply defined\n";
+    }
+  }
+  ;
 declarations:
     {
       //decs -> epsilon
@@ -473,6 +480,11 @@ term:
     stream << $3.code << ". " << temp << "\ncall " << $1.s_name << ", " << temp << "\n";
     $$.code = strdup(stream.str().c_str());
     $$.s_name = strdup(temp.c_str());
+    string id($1.s_name);
+    if(funcs.find(id) == funcs.end()) {
+      errorFlag=true; 
+      cout << "Error on line " << currLine << ": use of function \"" << id << "\" is not declared\n";
+    }
   } |
   var {
     string temp = newtemp();
@@ -550,6 +562,9 @@ var:
     stringstream temp;
     temp << $1.s_name << ", " << $3.s_name;
     $$.s_name = strdup(temp.str().c_str());
+    string id($1.s_name);
+    if(symbols.find(id) == symbols.end()) {errorFlag=true; cout << "Error on line " << currLine << ": use of variable \"" << id << "\" is not declared\n";}
+    else if(!isArr[id]) {errorFlag=true; cout << "Error on line " << currLine << ": trying to use regular variable \"" << id << "\" as an array variable\n";}
   }
   ;
 
